@@ -1,0 +1,31 @@
+{
+  "name": "frontend-nft-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@chakra-ui/react": "^2.4.9",
+    "@emotion/react": "^11.10.5",
+    "@emotion/styled": "^11.10.5",
+    "@next/font": "13.1.6",
+    "eslint": "8.33.0",
+    "eslint-config-next": "13.1.6",
+    "ethers": "^6.0.2",
+    "framer-motion": "^9.0.2",
+    "graphql": "^16.6.0",
+    "moralis-v1": "^1.12.0",
+    "next": "13.1.6",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-moralis": "^1.4.2",
+    "web3uikit": "^1.0.4"
+  },
+  "devDependencies": {
+    "@apollo/client": "^3.7.7"
+  }
+}
