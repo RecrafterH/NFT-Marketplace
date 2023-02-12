@@ -18,7 +18,7 @@ export default function Header() {
       flexDir="row"
       justifyContent="space-between"
       padding="20px"
-      background="linear-gradient(45deg, #9caff1, #84d4d1)"
+      background="linear-gradient(45deg, #efe6fd, #a553c8)"
     >
       <Heading>NFT Marketplace</Heading>
       <Box display="flex" flexDir="row">

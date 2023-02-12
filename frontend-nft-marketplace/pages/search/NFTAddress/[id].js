@@ -2,13 +2,18 @@ import { Inter } from "@next/font/google";
 import { useMoralisQuery, useMoralis } from "react-moralis";
 import NFTBox from "@/components/NFTBox";
 import { useQuery } from "@apollo/client";
-import { Box, Heading } from "@chakra-ui/react";
-import GET_My_ITEMS from "@/constants/MyQueries";
-import networkMapping from "../../constants/networkMapping.json";
+import { Box, Heading, Text } from "@chakra-ui/react";
+import networkMapping from "../../../constants/networkMapping.json";
+import GET_SEARCHNFT_ITEMS from "@/constants/searchNftQueries";
+import { useEffect, useState } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function MyNfts() {
+  const [currentPath, setCurrentPath] = useState("");
+  const dataArray = currentPath.split("/");
+  const nftAddress = dataArray[3] || "0";
+
   const { chainId, isWeb3Enabled, account } = useMoralis();
   const chainString = chainId ? parseInt(chainId).toString() : null;
   const marketplaceAddress = chainId
@@ -18,10 +23,20 @@ export default function MyNfts() {
     loading,
     error,
     data: activeItems,
-  } = useQuery(GET_My_ITEMS, { variables: { user: account } });
+  } = useQuery(GET_SEARCHNFT_ITEMS, {
+    variables: { nftAddress: nftAddress },
+  });
+
+  useEffect(() => {
+    // Update the document title using the browser API
+    console.log(window.location.pathname);
+    setCurrentPath(window.location.pathname);
+  });
   return (
     <Box>
-      <Heading>My NFTS</Heading>
+      <Text margin="10px" fontSize="20px" fontWeight="bold">
+        Searching for NFT Address: {nftAddress}
+      </Text>
       <Box
         display="grid"
         gridTemplateColumns="repeat(5, minmax(0, 1fr))"
@@ -31,7 +46,7 @@ export default function MyNfts() {
           loading || !activeItems ? (
             <div>Loading...</div>
           ) : (
-            activeItems.activeItems.map((nft) => {
+            activeItems.itemListeds.map((nft) => {
               const { price, nftAddress, tokenId, seller } = nft;
               return marketplaceAddress ? (
                 <NFTBox

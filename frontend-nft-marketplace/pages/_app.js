@@ -5,6 +5,7 @@ import { MoralisProvider } from "react-moralis";
 import { NotificationProvider } from "web3uikit";
 import { ApolloProvider, ApolloClient, InMemoryCache } from "@apollo/client";
 import Head from "next/head";
+import Footer from "@/components/Footer";
 
 const client = new ApolloClient({
   cache: new InMemoryCache(),
@@ -26,6 +27,7 @@ export default function App({ Component, pageProps }) {
             <NotificationProvider>
               <Header />
               <Component {...pageProps} />
+              <Footer />
             </NotificationProvider>
           </ChakraProvider>
         </ApolloProvider>
