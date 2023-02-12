@@ -3,6 +3,7 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 error NftMarketplace__PriceMustBeAboveZero();
 error NftMarketplace__NotApprovedForMarketplace();
@@ -17,11 +18,19 @@ error NftMarketplace__PriceNotMet(
 error NftMarketplace__NoProceeds();
 error NftMarketplace_TransferFailed();
 
-contract NftMarketplace is ReentrancyGuard {
+contract NftMarketplace is ReentrancyGuard, Ownable {
     struct Listing {
         uint256 price;
         address seller;
     }
+
+    struct CollectionRoyalties {
+        address creator;
+        uint royalties;
+    }
+
+    // State variables
+    uint256 public fee = 20;
 
     event ItemListed(
         address indexed seller,
@@ -46,6 +55,13 @@ contract NftMarketplace is ReentrancyGuard {
 
     // Seller address -> amount earned
     mapping(address => uint256) private proceeds;
+
+    // Nft address -> collection royalties
+    mapping(address => CollectionRoyalties)
+        private addressToCollectionRoyalties;
+
+    // This address -> collected fees
+    mapping(address => uint256) private feeCollector;
 
     ///////////////
     // modifiers //
@@ -120,6 +136,11 @@ contract NftMarketplace is ReentrancyGuard {
         uint256 tokenId
     ) external payable isListed(nftAddress, tokenId) {
         Listing memory listedItem = listings[nftAddress][tokenId];
+        uint feeValue = (msg.value * fee) / 1000;
+        uint royalties = (msg.value *
+            addressToCollectionRoyalties[nftAddress].royalties) / 10000;
+        uint buyerProceeds = msg.value - royalties - feeValue;
+
         if (msg.value < listedItem.price) {
             revert NftMarketplace__PriceNotMet(
                 nftAddress,
@@ -127,7 +148,13 @@ contract NftMarketplace is ReentrancyGuard {
                 listedItem.price
             );
         }
-        proceeds[listedItem.seller] = proceeds[listedItem.seller] + msg.value;
+        proceeds[listedItem.seller] =
+            proceeds[listedItem.seller] +
+            buyerProceeds;
+        proceeds[addressToCollectionRoyalties[nftAddress].creator] =
+            proceeds[addressToCollectionRoyalties[nftAddress].creator] +
+            royalties;
+        feeCollector[address(this)] = feeCollector[address(this)] + feeValue;
         delete (listings[nftAddress][tokenId]);
         IERC721(nftAddress).safeTransferFrom(
             listedItem.seller,
@@ -174,6 +201,49 @@ contract NftMarketplace is ReentrancyGuard {
         }
     }
 
+    function setCollectionRoyalties(
+        address creator,
+        address nftAddress,
+        uint royalties
+    ) public onlyOwner {
+        require(
+            addressToCollectionRoyalties[nftAddress].creator == address(0),
+            "The royalty is already set"
+        );
+        require(royalties <= 10000, "Royalty must be below 10001");
+        addressToCollectionRoyalties[nftAddress] = CollectionRoyalties(
+            creator,
+            royalties
+        );
+    }
+
+    function updateCollectionRoyalities(
+        address creator,
+        address nftAddress,
+        uint newRoyalties
+    ) public onlyOwner {
+        require(
+            addressToCollectionRoyalties[nftAddress].creator != address(0),
+            "There is no royalty set"
+        );
+        require(newRoyalties <= 10000, "Royalty must be below 10001");
+        addressToCollectionRoyalties[nftAddress].royalties = newRoyalties;
+        addressToCollectionRoyalties[nftAddress].creator = creator;
+    }
+
+    function updateFee(uint newFee) public onlyOwner {
+        require(newFee <= 1000, "Fee must be below 1001");
+        fee = newFee;
+    }
+
+    function withdrawFees() public onlyOwner {
+        uint feeValue = feeCollector[address(this)];
+        require(feeValue > 0, "The balance is 0");
+        feeCollector[address(this)] = 0;
+        (bool success, ) = msg.sender.call{value: feeValue}("");
+        require(success, "This transaction failed");
+    }
+
     //////////////////////
     // Getter Functions //
     //////////////////////
@@ -187,5 +257,10 @@ contract NftMarketplace is ReentrancyGuard {
 
     function getProceeds(address seller) external view returns (uint256) {
         return proceeds[seller];
+    }
+
+    function getCollectedFees() external view onlyOwner returns (uint256) {
+        uint fees = feeCollector[address(this)];
+        return fees;
     }
 }

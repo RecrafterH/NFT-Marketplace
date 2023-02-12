@@ -202,7 +202,7 @@ describe("unit tests", async () => {
       const number = formatEther(
         (await marketplaceContract.getProceeds(owner.address)).toString()
       );
-      await expect(number.toString()).to.equal("1.0");
+      await expect(number.toString()).to.equal("0.98");
     });
     it("Will send the nft to the new owner", async () => {
       const [owner, user1] = await ethers.getSigners();
@@ -248,7 +248,174 @@ describe("unit tests", async () => {
         (await ethers.provider.getBalance(owner.address)).toString()
       );
       let number = Math.round((newBalance - oldBalance) * 10000) / 10000;
-      await expect(number).to.equal(1);
+      await expect(number).to.equal(0.98);
+    });
+  });
+  describe("setCollectionRoyalties", () => {
+    it("Lets set the collection royalties", async () => {
+      const [owner, user1, user2] = await ethers.getSigners();
+      await marketplaceContract.setCollectionRoyalties(
+        user1.address,
+        nftContract.address,
+        1000
+      );
+      await nftContract.approve(marketplaceContract.address, 0);
+      await marketplaceContract.listItem(
+        nftContract.address,
+        0,
+        parseEther("1000")
+      );
+
+      await marketplaceContract.connect(user2).buyItem(nftContract.address, 0, {
+        value: parseEther("1000"),
+      });
+
+      let balance = await marketplaceContract.getProceeds(user1.address);
+      balance = formatEther(balance.toString());
+      expect(balance.toString()).to.equal("100.0");
+    });
+    it("allows only the owner to set a royalty", async () => {
+      const [owner, user1] = await ethers.getSigners();
+      await expect(
+        marketplaceContract
+          .connect(user1)
+          .setCollectionRoyalties(user1.address, nftContract.address, 1000)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+    it("Won't let us set a royalty over 10000", async () => {
+      const [owner, user1] = await ethers.getSigners();
+      await expect(
+        marketplaceContract.setCollectionRoyalties(
+          user1.address,
+          nftContract.address,
+          10001
+        )
+      ).to.be.revertedWith("Royalty must be below 10001");
+    });
+  });
+  describe("updateCollectionRoyalities", () => {
+    it("Lets only the owner update call the function", async () => {
+      const [owner, user1] = await ethers.getSigners();
+      await marketplaceContract.setCollectionRoyalties(
+        user1.address,
+        nftContract.address,
+        1000
+      );
+      await expect(
+        marketplaceContract
+          .connect(user1)
+          .updateCollectionRoyalities(user1.address, nftContract.address, 2000)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+    it("Should revert if there is no royalty set", async () => {
+      const [owner, user1] = await ethers.getSigners();
+      await expect(
+        marketplaceContract.updateCollectionRoyalities(
+          user1.address,
+          nftContract.address,
+          2000
+        )
+      ).to.be.revertedWith("There is no royalty set");
+    });
+    it("Should revert if royalty is below 10001", async () => {
+      const [owner, user1] = await ethers.getSigners();
+      await marketplaceContract.setCollectionRoyalties(
+        user1.address,
+        nftContract.address,
+        1000
+      );
+      await expect(
+        marketplaceContract.updateCollectionRoyalities(
+          user1.address,
+          nftContract.address,
+          10100
+        )
+      ).to.be.revertedWith("Royalty must be below 10001");
+    });
+    it("Lets the owner update the royalty", async () => {
+      const [owner, user1, user2] = await ethers.getSigners();
+      await marketplaceContract.setCollectionRoyalties(
+        user1.address,
+        nftContract.address,
+        1000
+      );
+      await marketplaceContract.updateCollectionRoyalities(
+        user1.address,
+        nftContract.address,
+        2000
+      );
+      await nftContract.approve(marketplaceContract.address, 0);
+      await marketplaceContract.listItem(
+        nftContract.address,
+        0,
+        parseEther("1000")
+      );
+      await marketplaceContract.connect(user2).buyItem(nftContract.address, 0, {
+        value: parseEther("1000"),
+      });
+      let balance = await marketplaceContract.getProceeds(user1.address);
+      balance = formatEther(balance.toString());
+      await expect(balance.toString()).to.equal("200.0");
+    });
+  });
+  describe("withdrawFees", () => {
+    it("Reverts if someone but the owner tries to withdraw the fees", async () => {
+      const [owner, user1] = await ethers.getSigners();
+      await expect(
+        marketplaceContract.connect(user1).withdrawFees()
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+    it("Should revert if there are no fees to withdraw", async () => {
+      await expect(marketplaceContract.withdrawFees()).to.be.revertedWith(
+        "The balance is 0"
+      );
+    });
+    it("Lets the owner withdraw the fees", async () => {
+      const [owner, user1, user2] = await ethers.getSigners();
+      const balanceOld = await ethers.provider.getBalance(owner.address);
+      await nftContract.approve(marketplaceContract.address, 0);
+      await marketplaceContract.listItem(
+        nftContract.address,
+        0,
+        parseEther("1000")
+      );
+      await marketplaceContract.connect(user2).buyItem(nftContract.address, 0, {
+        value: parseEther("1000"),
+      });
+      await marketplaceContract.withdrawFees();
+      const balanceNew = await ethers.provider.getBalance(owner.address);
+      const balance = formatEther((balanceNew - balanceOld).toString());
+      await expect(Math.round(Number(balance))).to.equal(20);
+    });
+  });
+  describe("upateFee", () => {
+    it("Revert if someone but the owner calls the function", async () => {
+      const [owner, user1] = await ethers.getSigners();
+      await expect(
+        marketplaceContract.connect(user1).updateFee(100)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+    it("Reverts if the fee is above 1000", async () => {
+      await expect(marketplaceContract.updateFee(1001)).to.be.revertedWith(
+        "Fee must be below 1001"
+      );
+    });
+    it("Lets the owner update the fee", async () => {
+      const [owner, user1, user2] = await ethers.getSigners();
+      const balanceOld = await ethers.provider.getBalance(owner.address);
+      await nftContract.approve(marketplaceContract.address, 0);
+      await marketplaceContract.listItem(
+        nftContract.address,
+        0,
+        parseEther("1000")
+      );
+      await marketplaceContract.updateFee(100);
+      await marketplaceContract.connect(user2).buyItem(nftContract.address, 0, {
+        value: parseEther("1000"),
+      });
+      let balance = await marketplaceContract.getCollectedFees();
+      balance = formatEther(balance.toString());
+      await expect(balance).to.equal("100.0");
     });
   });
 });
