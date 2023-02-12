@@ -14,23 +14,14 @@ const mintAndList = async () => {
 
   const basicNft = await ethers.getContractAt(
     "BasicNftTwo",
-    "0x36335BD3DF379b1C3Fe163575665F9209F1F5921",
+    "0xE7Bb3BCd008d210F6Edd88293358c98913bD2C09",
     owner
   );
 
-  console.log("Minting...");
-  const mintNft = await basicNft.mintNft();
-  const mintTxReceipt = await mintNft.wait(1);
-  const tokenId = mintTxReceipt.events[0].args.tokenId;
-  console.log(tokenId);
-  console.log("Approving Nft...");
-
-  const approveTx = await basicNft.approve(nftMarketplace.address, tokenId);
-  await approveTx.wait(1);
-  console.log("Listing NFT...");
-  const tx = await nftMarketplace.listItem(basicNft.address, tokenId, price);
+  console.log("Cancel NFT...");
+  const tx = await nftMarketplace.cancelListing(basicNft.address, 0);
   await tx.wait(1);
-  console.log("Listed!");
+  console.log("Canceled!");
 };
 
 mintAndList()

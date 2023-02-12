@@ -1,35 +1,37 @@
-import Image from "next/image";
-import { useMoralisQuery, useMoralis } from "react-moralis";
 import { Inter } from "@next/font/google";
-import styles from "@/styles/Home.module.css";
+import { useMoralisQuery, useMoralis } from "react-moralis";
 import NFTBox from "@/components/NFTBox";
-import networkMapping from "../constants/networkMapping.json";
-import GET_ACITVE_ITEMS from "@/constants/subgraphQueries";
 import { useQuery } from "@apollo/client";
 import { Box, Heading } from "@chakra-ui/react";
+import GET_My_ITEMS from "@/constants/MyQueries";
+import networkMapping from "../../constants/networkMapping.json";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function Home() {
-  const { chainId, isWeb3Enabled } = useMoralis();
+export default function MyNfts() {
+  const { chainId, isWeb3Enabled, account } = useMoralis();
   const chainString = chainId ? parseInt(chainId).toString() : null;
   const marketplaceAddress = chainId
     ? networkMapping[chainString].NftMarketplace[0]
     : null;
-  const { loading, error, data: listedNfts } = useQuery(GET_ACITVE_ITEMS);
+  const {
+    loading,
+    error,
+    data: activeItems,
+  } = useQuery(GET_My_ITEMS, { variables: { user: account } });
   return (
     <Box>
-      <Heading margin="30px">Recently Listed</Heading>
+      <Heading>My NFTS</Heading>
       <Box
         display="grid"
         gridTemplateColumns="repeat(5, minmax(0, 1fr))"
         grid-auto-rows="1fr"
       >
         {isWeb3Enabled && chainId ? (
-          loading || !listedNfts ? (
+          loading || !activeItems ? (
             <div>Loading...</div>
           ) : (
-            listedNfts.activeItems.map((nft) => {
+            activeItems.itemListeds.map((nft) => {
               const { price, nftAddress, tokenId, seller } = nft;
               return marketplaceAddress ? (
                 <NFTBox

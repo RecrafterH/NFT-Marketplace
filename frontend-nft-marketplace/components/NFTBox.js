@@ -8,6 +8,7 @@ import { ethers, formatEther } from "ethers";
 //import { formatEther } from "ethers/lib/utils";
 import UpdateListingModal from "./UpdateListingModal";
 import { Box } from "@chakra-ui/react";
+import Link from "next/link";
 
 const truncateStr = (fullStr, strLen) => {
   if (fullStr.length <= strLen) return fullStr;
@@ -112,7 +113,7 @@ export default function NFTBox({
 
   return (
     <Box>
-      <Box>
+      <Box margin="30px">
         {imageURI ? (
           <Box>
             <UpdateListingModal
@@ -122,27 +123,36 @@ export default function NFTBox({
               nftAddress={nftAddress}
               onClose={hideModal}
             />
-            <Card
-              title={tokenName}
-              description={tokenDescription}
-              onClick={handleCardClick}
+            <Link
+              key={[nftAddress, tokenId]}
+              href={`/NFT/${nftAddress}/${tokenId}`}
+              passHref
+              legacyBehavior
             >
-              <Box padding="20px">
-                <Box display="flex" flexDir="column">
-                  <div>#{tokenId}</div>
-                  <Box>Owned by {formattedSellerAddress}</Box>
-                  <Image
-                    loader={() => imageURI}
-                    src={imageURI}
-                    height="200"
-                    width="200"
-                  />
-                  <Box fontWeight="bold">
-                    {formatEther(price.toString())} ETH
+              <a>
+                <Card
+                  title={tokenName}
+                  description={tokenDescription}
+                  /* onClick={handleCardClick} */
+                >
+                  <Box padding="20px">
+                    <Box display="flex" flexDir="column">
+                      <div>#{tokenId}</div>
+                      <Box>Owned by {formattedSellerAddress}</Box>
+                      <Image
+                        loader={() => imageURI}
+                        src={imageURI}
+                        height="200"
+                        width="200"
+                      />
+                      <Box fontWeight="bold">
+                        {formatEther(price.toString())} ETH
+                      </Box>
+                    </Box>
                   </Box>
-                </Box>
-              </Box>
-            </Card>
+                </Card>
+              </a>
+            </Link>
           </Box>
         ) : (
           <Box>Loading...</Box>

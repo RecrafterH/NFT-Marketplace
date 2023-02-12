@@ -1,13 +1,14 @@
 import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
-import { Form, useNotification, Button } from "web3uikit";
+import { Form, useNotification } from "web3uikit";
 import { useMoralis, useWeb3Contract } from "react-moralis";
-import { ethers, parseEther } from "ethers";
+import { ethers, formatEther, parseEther } from "ethers";
 import nftAbi from "../constants/BasicNft.json";
 import nftMarketplaceAbi from "../constants/NftMarketplace.json";
 import networkMapping from "../constants/networkMapping.json";
 import { useEffect, useState } from "react";
+import { Box, Button, Text } from "@chakra-ui/react";
 
 export default function Home() {
   const { chainId, account, isWeb3Enabled } = useMoralis();
@@ -83,6 +84,25 @@ export default function Home() {
     });
   };
 
+  const { runContractFunction: withdrawProceeds } = useWeb3Contract({
+    abi: nftMarketplaceAbi,
+    contractAddress: marketplaceAddress,
+    functionName: "withdrawProceeds",
+    params: {},
+
+    onError: (error) => console.log(error),
+    onSuccess: () => handleWithdrawSuccess,
+  });
+
+  const handleWithdrawClick = () => {
+    console.log("lol");
+
+    withdrawProceeds({
+      onError: (error) => console.log(error),
+      onSuccess: () => handleWithdrawSuccess,
+    });
+  };
+
   async function setupUI() {
     const returnedProceeds = await runContractFunction({
       params: {
@@ -105,54 +125,54 @@ export default function Home() {
   }, [proceeds, account, isWeb3Enabled, chainId]);
 
   return (
-    <div className={styles.container}>
-      <Form
-        onSubmit={approveAndList}
-        data={[
-          {
-            name: "NFT Address",
-            type: "text",
-            inputWidth: "50%",
-            value: "",
-            key: "nftAddress",
-          },
-          {
-            name: "Token ID",
-            type: "number",
-            value: "",
-            key: "tokenId",
-          },
-          {
-            name: "Price (in ETH)",
-            type: "number",
-            value: "",
-            key: "price",
-          },
-        ]}
-        title="Sell your NFT!"
-        id="Main Form"
-      />
-      <div>Withdraw {proceeds} proceeds</div>
-      {proceeds != "0" ? (
-        <Button
-          onClick={() => {
-            runContractFunction({
-              params: {
-                abi: nftMarketplaceAbi,
-                contractAddress: marketplaceAddress,
-                functionName: "withdrawProceeds",
-                params: {},
-              },
-              onError: (error) => console.log(error),
-              onSuccess: () => handleWithdrawSuccess,
-            });
-          }}
-          text="Withdraw"
-          type="button"
+    <Box
+      margin="5%"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      flexDir="column"
+    >
+      <Box
+        border="solid 1px black"
+        padding="10px"
+        borderRadius="12px"
+        marginBottom="50px"
+      >
+        <Form
+          onSubmit={approveAndList}
+          data={[
+            {
+              name: "NFT Address",
+              type: "text",
+              inputWidth: "50%",
+              value: "",
+              key: "nftAddress",
+            },
+            {
+              name: "Token ID",
+              type: "number",
+              value: "",
+              key: "tokenId",
+            },
+            {
+              name: "Price (in ETH)",
+              type: "number",
+              value: "",
+              key: "price",
+            },
+          ]}
+          title="Sell your NFT!"
+          id="Main Form"
         />
+      </Box>
+      <div>Withdraw {formatEther(proceeds)} ETH proceeds</div>
+      {proceeds != "0" ? (
+        <Button margin="30px" onClick={handleWithdrawClick}>
+          Withdraw
+        </Button>
       ) : (
-        <div>No proceeds detected</div>
+        <Text margin="30px">No proceeds detected</Text>
       )}
-    </div>
+    </Box>
   );
 }

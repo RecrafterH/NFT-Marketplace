@@ -13,7 +13,7 @@ const main = async () => {
 };
 
 //Contract deployed at:  0x4c950387D39c00d1608BaebE3c8E5F9ab4462947
-//NFT deployed at : 0xfBAF1A98Af4cFc8cB32bd3B6Cfad818cB7121De1
+//NFT deployed at : 0x0b55bddc116dcf52bb4fcbb70b5d7367810ef0cc
 
 main()
   .then(() => process.exit(0))
